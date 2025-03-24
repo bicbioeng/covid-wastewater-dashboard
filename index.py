@@ -3,12 +3,25 @@ from dash import html, dcc, Input, Output, State
 import dash_daq as daq
 import pandas as pd
 import os
+import numpy as np
+import joblib
+import pickle
 
 # Initialize the Dash app
 app = dash.Dash(__name__, meta_tags=[{"name": "viewport", "content": "width=device-width"}])
 
 # Load state population data
 state_population_df = pd.read_csv("us-state-populations.csv")
+
+# Load the saved models
+rf_model = joblib.load('random_forest_model.pkl')
+arima_model = pickle.load(open('arima_model.pkl', 'rb'))
+sarima_model = pickle.load(open('sarima_model.pkl', 'rb'))
+
+# Load the last day number from the text file (for Random Forest)
+with open('last_data_info.txt', 'r') as f:
+    lines = f.readlines()
+    last_day_number = int(lines[0].split(': ')[1])
 
 # List of U.S. states
 us_states = [
@@ -47,15 +60,31 @@ def get_risk_level(value):
     else:  # value > 8
         return "Very High"
 
-# Dummy regression model to predict deaths
-def predict_deaths(viral_activity):
-    return max(0, int(10 * viral_activity + 5))
+# Prediction Functions
+def predict_rf_daily_deaths(viral_activity_level, days=5):
+    rf_input = np.array([[viral_activity_level, last_day_number + i + 1] for i in range(days)])
+    rf_preds = rf_model.predict(rf_input)
+    return rf_preds.tolist()  # Return as list for Dash compatibility
 
-# Dummy regression model to predict deaths over 5 days
-def predict_deaths_over_days(viral_activity):
-    base_deaths = max(0, int(10 * viral_activity + 5))  # Initial prediction
-    # Simulate a slight daily increase (e.g., +10% per day) or adjust as needed
-    return [int(base_deaths * (1 + 0.1 * i)) for i in range(5)]  # 5 days
+def predict_arima_daily_deaths(viral_activity_level, days=5):
+    exog_future = np.array([[viral_activity_level]] * days)
+    arima_preds = arima_model.forecast(steps=days, exog=exog_future)
+    return [abs(pred) for pred in arima_preds.tolist()]  # Ensure positive values
+
+def predict_sarima_daily_deaths(viral_activity_level, days=5):
+    exog_future = np.array([[viral_activity_level]] * days)
+    sarima_preds = sarima_model.forecast(steps=days, exog=exog_future)
+    return [abs(pred) for pred in sarima_preds.tolist()]  # Ensure positive values
+
+
+def predict_deaths_over_days(viral_activity, model_type):
+    if model_type == 'Random Forest':
+        return predict_rf_daily_deaths(viral_activity)
+    elif model_type == 'ARIMA':
+        return predict_arima_daily_deaths(viral_activity)
+    elif model_type == 'SARIMA':
+        return predict_sarima_daily_deaths(viral_activity)
+    return [0] * 5  # Fallback
 
 # Sample fun facts
 fun_facts = [
@@ -162,25 +191,8 @@ app.layout = html.Div([
                                 ),
                                 html.Div(id='household-risk-label', style={'color': 'white', 'fontSize': 16, 'textAlign': 'center', 'marginTop': '10px'})
                             ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'}),
-                            # daq.Gauge(
-                            #     id='household-deaths-gauge',
-                            #     label={'label': "Predicted Deaths", 'style': {'color': 'white'}},
-                            #     min=0,
-                            #     max=100,
-                            #     value=0,
-                            #     scale={'start': 0, 'interval': 20, 'labelInterval': 1},
-                            #     showCurrentValue=True,
-                            #     units="Deaths",
-                            #     color={"gradient": True, "ranges": {
-                            #         "green": [0, 20], "yellow": [20, 50], "orange": [50, 80], "red": [80, 100]
-                            #     }},
-                            #     size=200,
-                            #     style={'marginTop': '30px'}
-                            # )
-
-                            dcc.Graph(id='household-deaths-chart', style={'width': '600px', 'height': '400px', 'marginTop': '20px'})
-                            
-                        ], style={'display': 'flex','width': '100%','flexDirection': 'column', 'alignItems': 'center'})
+                            dcc.Graph(id='household-deaths-chart', style={'width': '350px', 'height': '300px', 'marginTop': '20px'})
+                        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'})
                     ], style={'padding': '20px', 'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'})
                 ]),
                 # State Tab
@@ -195,7 +207,7 @@ app.layout = html.Div([
                                 style={'width': '300px', 'marginBottom': 10}
                             ),
                             html.Label("Viral Activity Level:", style={'color': 'white', 'fontSize': 20, 'textAlign': 'center'}),
-                            dcc.Input(id='state-population', type='number', disabled=True, style={'width': '200px', 'marginBottom': 20}),
+                            dcc.Input(id='state-population', type='number', value=0, style={'width': '200px', 'marginBottom': 20}),
                             html.Label("Select Model:", style={'color': 'white', 'fontSize': 20, 'textAlign': 'center'}),
                             dcc.Dropdown(
                                 id='state-model',
@@ -232,96 +244,81 @@ app.layout = html.Div([
                                 ),
                                 html.Div(id='state-risk-label', style={'color': 'white', 'fontSize': 16, 'textAlign': 'center', 'marginTop': '10px'})
                             ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'}),
-                            daq.Gauge(
-                                id='state-deaths-gauge',
-                                label="Predicted Deaths",
-                                min=0,
-                                max=1000,
-                                value=0,
-                                scale={'start': 0, 'interval': 200, 'labelInterval': 1},
-                                showCurrentValue=True,
-                                units="Deaths",
-                                color={"gradient": True, "ranges": {
-                                    "green": [0, 200], "yellow": [200, 500], "orange": [500, 800], "red": [800, 1000]
-                                }},
-                                size=200
-                            )
-                        ], style={'display': 'flex', 'justifyContent': 'space-around', 'width': '100%'})
+                            dcc.Graph(id='state-deaths-chart', style={'width': '350px', 'height': '300px', 'marginTop': '20px'})
+                        ], style={'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'})
                     ], style={'padding': '20px', 'display': 'flex', 'flexDirection': 'column', 'alignItems': 'center'})
                 ])
             ])
         ], className="create_container seven columns"),
 
-    html.Div([
-    # Fun Facts Carousel section
-    html.Div([
-        html.H4("Fun Facts", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
-        html.Div(id='fun-fact-display', style={'color': 'white', 'textAlign': 'center'}),
         html.Div([
-            html.Button('Previous', id='prev-button', n_clicks=0, style={'marginRight': '10px', 'backgroundColor': '#4CAF50', 'color': 'white', 'border': 'none', 'padding': '0px 10px 0px 10px'}),
-            html.Button('Next', id='next-button', n_clicks=0, style={'backgroundColor': '#4CAF50', 'color': 'white', 'border': 'none', 'padding': '0px 10px 0px 10px'}),
-        ], style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '20px'}),
-        dcc.Interval(id='carousel-interval', interval=10000, n_intervals=0)
-    ], style={'padding': '20px','marginBottom': '30px', 'backgroundColor': '#2a3b7a',}),
+            # Fun Facts Carousel section
+            html.Div([
+                html.H4("Fun Facts", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
+                html.Div(id='fun-fact-display', style={'color': 'white', 'textAlign': 'center'}),
+                html.Div([
+                    html.Button('Previous', id='prev-button', n_clicks=0, style={'marginRight': '10px', 'backgroundColor': '#4CAF50', 'color': 'white', 'border': 'none', 'padding': '0px 10px 0px 10px'}),
+                    html.Button('Next', id='next-button', n_clicks=0, style={'backgroundColor': '#4CAF50', 'color': 'white', 'border': 'none', 'padding': '0px 10px 0px 10px'}),
+                ], style={'display': 'flex', 'justifyContent': 'center', 'marginTop': '20px'}),
+                dcc.Interval(id='carousel-interval', interval=10000, n_intervals=0)
+            ], style={'padding': '20px', 'marginBottom': '30px', 'backgroundColor': '#2a3b7a'}),
 
-    # Explanation of Prediction Models
-    html.Div([
-        html.H4("How the Prediction Models Work", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
-        
-        html.Div([
-            html.H5("Random Forest", style={'color': '#4CAF50'}),
-            html.P("Random Forest is an ensemble learning method that constructs multiple decision trees and merges their outputs to improve prediction accuracy and reduce overfitting. It is widely used for both classification and regression tasks.", style={'color': 'white'}),
-        ], style={'marginBottom': '20px'}),
+            # Explanation of Prediction Models
+            html.Div([
+                html.H4("How the Prediction Models Work", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
+                
+                html.Div([
+                    html.H5("Random Forest", style={'color': '#4CAF50'}),
+                    html.P("Random Forest is an ensemble learning method that constructs multiple decision trees and merges their outputs to improve prediction accuracy and reduce overfitting. It is widely used for both classification and regression tasks.", style={'color': 'white'}),
+                ], style={'marginBottom': '20px'}),
 
-        html.Div([
-            html.H5("ARIMA (AutoRegressive Integrated Moving Average)", style={'color': '#FF9800'}),
-            html.P("ARIMA is a time-series forecasting technique that combines autoregression (AR), differencing (I) to make the series stationary, and moving averages (MA). It is effective for linear patterns in time-series data.", style={'color': 'white'}),
-        ], style={'marginBottom': '20px'}),
+                html.Div([
+                    html.H5("ARIMA (AutoRegressive Integrated Moving Average)", style={'color': '#FF9800'}),
+                    html.P("ARIMA is a time-series forecasting technique that combines autoregression (AR), differencing (I) to make the series stationary, and moving averages (MA). It is effective for linear patterns in time-series data.", style={'color': 'white'}),
+                ], style={'marginBottom': '20px'}),
 
-        html.Div([
-            html.H5("SARIMA (Seasonal ARIMA)", style={'color': '#FF5722'}),
-            html.P("SARIMA extends ARIMA by incorporating seasonal trends, making it useful for data with repeating seasonal patterns. It adds seasonal autoregressive, differencing, and moving average components to better model periodic fluctuations.", style={'color': 'white'}),
-        ], style={'marginBottom': '20px'}),
-    ], style={'padding': '20px', 'borderRadius': '10px', 'backgroundColor': '#2E2E2E'}),
+                html.Div([
+                    html.H5("SARIMA (Seasonal ARIMA)", style={'color': '#FF5722'}),
+                    html.P("SARIMA extends ARIMA by incorporating seasonal trends, making it useful for data with repeating seasonal patterns. It adds seasonal autoregressive, differencing, and moving average components to better model periodic fluctuations.", style={'color': 'white'}),
+                ], style={'marginBottom': '20px'}),
+            ], style={'padding': '20px', 'borderRadius': '10px', 'backgroundColor': '#2E2E2E'}),
 
-    html.Div(
-    [
-        html.H4("Important Links", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
-        html.Ul(
-            [
-                html.Li(
-                    html.A(
-                        "CDC NWSS About",
-                        href="https://www.cdc.gov/nwss/about.html?CDC_AA_refVal=https%3A%2F%2Fwww.cdc.gov%2Fnwss%2Fprogress.html",
-                        target="_blank",
-                        style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
-                    )
-                ),
-                html.Li(
-                    html.A(
-                        "CDC COVID-19 State Trend (Arizona)",
-                        href="https://www.cdc.gov/nwss/rv/COVID19-statetrend.html?stateval=Arizona",
-                        target="_blank",
-                        style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
-                    )
-                ),
-                html.Li(
-                    html.A(
-                        "Wastewater Surveillance Dashboard",
-                        href="https://wastewater.bicbioeng.org/page4",
-                        target="_blank",
-                        style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
-                    )
-                ),
-            ],
-            style={"list-style-type": "none", "padding": "0"},
-        ),
-    ],
-    style={'marginTop': '20px', 'padding': '20px', 'borderRadius': '10px', 'backgroundColor': '#2E2E2E'},
-)
-
-
-],className="create_container five columns", style={'marginTop': '30px'}),
+            html.Div(
+                [
+                    html.H4("Important Links", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
+                    html.Ul(
+                        [
+                            html.Li(
+                                html.A(
+                                    "CDC NWSS About",
+                                    href="https://www.cdc.gov/nwss/about.html?CDC_AA_refVal=https%3A%2F%2Fwww.cdc.gov%2Fnwss%2Fprogress.html",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                            html.Li(
+                                html.A(
+                                    "CDC COVID-19 State Trend (Arizona)",
+                                    href="https://www.cdc.gov/nwss/rv/COVID19-statetrend.html?stateval=Arizona",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                            html.Li(
+                                html.A(
+                                    "Wastewater Surveillance Dashboard",
+                                    href="https://wastewater.bicbioeng.org/page4",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                        ],
+                        style={"list-style-type": "none", "padding": "0"},
+                    ),
+                ],
+                style={'marginTop': '20px', 'padding': '20px', 'borderRadius': '10px', 'backgroundColor': '#2E2E2E'},
+            )
+        ], className="create_container five columns", style={'marginTop': '30px'}),
     ], className="row flex-display"),
 
 ], id="mainContainer", style={"display": "flex", "flex-direction": "column", "backgroundColor": "#1f2c56"})
@@ -335,32 +332,12 @@ def update_visitor_count_display(_):
     count = update_visitor_count()
     return f'Total Website Visits: {count}'
 
-# # Callback for Household tab
-# @app.callback(
-#     [Output('household-result', 'children'),
-#      Output('household-gauge', 'value'),
-#      Output('household-deaths', 'children'),
-#      Output('household-deaths-gauge', 'value'),
-#      Output('household-risk-label', 'children')],
-#     [Input('household-number', 'value'),
-#      Input('household-model', 'value')]
-# )
-# def update_household_output(number, model):
-    if number is None:
-        number = 0
-    risk_level = get_risk_level(number)
-    # Cap gauge value at 10 if number exceeds 10
-    gauge_value = min(max(number, 0), 10)  # Ensure non-negative and cap at 10
-    predicted_deaths = predict_deaths(number)
-    result_text = f"Model: {model} | Risk Level: {risk_level}"
-    deaths_text = f"Predicted Deaths: {predicted_deaths}"
-    return result_text, gauge_value, deaths_text, min(predicted_deaths, 100), f"Risk: {risk_level}"
-
+# Callback for Household tab
 @app.callback(
     [Output('household-result', 'children'),
      Output('household-gauge', 'value'),
      Output('household-deaths', 'children'),
-     Output('household-deaths-chart', 'figure'),  # Changed to chart figure
+     Output('household-deaths-chart', 'figure'),
      Output('household-risk-label', 'children')],
     [Input('household-number', 'value'),
      Input('household-model', 'value')]
@@ -369,17 +346,16 @@ def update_household_output(number, model):
     if number is None:
         number = 0
     risk_level = get_risk_level(number)
-    gauge_value = min(max(number, 0), 10)  # Cap at 10 for gauge
-    predicted_deaths = predict_deaths_over_days(number)  # List of 5 days
+    gauge_value = min(max(number, 0), 10)
+    predicted_deaths = predict_deaths_over_days(number, model)
     
-    result_text = f"Model: {model} | Input: {number} | Risk Level: {risk_level}"
-    deaths_text = f"Predicted Deaths (Day 1): {predicted_deaths[0]}"  # Show Day 1 value in text
+    result_text = f"Model: {model} | Viral Activity: {number} | Risk Level: {risk_level}"
+    deaths_text = f"Predicted Deaths (Day 1): {int(predicted_deaths[0])}"
     
-    # Create bar chart figure
     fig = {
         'data': [{
             'x': ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
-            'y': predicted_deaths,
+            'y': [int(d) for d in predicted_deaths],
             'type': 'bar',
             'marker': {'color': 'orange'}
         }],
@@ -387,16 +363,14 @@ def update_household_output(number, model):
             'title': {'text': 'Predicted Deaths Over 5 Days', 'font': {'color': 'white'}},
             'xaxis': {'title': 'Days', 'color': 'white', 'tickfont': {'color': 'white'}},
             'yaxis': {'title': 'Deaths', 'color': 'white', 'tickfont': {'color': 'white'}},
-            'plot_bgcolor': '#1f2c56',  # Match background
-            'paper_bgcolor': '#1f2c56',  # Match background
+            'plot_bgcolor': '#1f2c56',
+            'paper_bgcolor': '#1f2c56',
             'font': {'color': 'white'},
             'margin': {'l': 40, 'r': 40, 't': 40, 'b': 40}
         }
     }
     
     return result_text, gauge_value, deaths_text, fig, f"Risk: {risk_level}"
-
-
 
 # Callback for State tab - Update population
 @app.callback(
@@ -406,33 +380,52 @@ def update_household_output(number, model):
 def update_state_population(selected_state):
     if selected_state:
         population = state_population_df.loc[state_population_df['state'] == selected_state, 'pop_2014'].values
-        return population[0] if len(population) > 0 else 0
+        return population[0] / 1_000_000 if len(population) > 0 else 0  # Scale to millions as default
     return 0
 
-# Callback for State tab - Update result and gauge
+# Callback for State tab - Update result and chart
 @app.callback(
     [Output('state-result', 'children'),
      Output('state-gauge', 'value'),
      Output('state-deaths', 'children'),
-     Output('state-deaths-gauge', 'value'),
+     Output('state-deaths-chart', 'figure'),
      Output('state-risk-label', 'children')],
     [Input('state-population', 'value'),
      Input('state-dropdown', 'value'),
      Input('state-model', 'value')]
 )
-def update_state_output(population, state, model):
-    if population is None:
-        population = 0
-    scaled_value = population / 1_000_000
-    risk_level = get_risk_level(scaled_value)
-    # Cap gauge value at 10 if scaled_value exceeds 10
-    gauge_value = min(max(scaled_value, 0), 10)  # Ensure non-negative and cap at 10
-    predicted_deaths = predict_deaths(scaled_value)
-    result_text = f"State: {state} | Model: {model} | Population: {population:,} | Risk Level: {risk_level}"
-    deaths_text = f"Predicted Deaths: {predicted_deaths}"
-    return result_text, gauge_value, deaths_text, min(predicted_deaths, 1000), f"Risk: {risk_level}"
+def update_state_output(viral_activity, state, model):
+    if viral_activity is None:
+        viral_activity = 0
+    risk_level = get_risk_level(viral_activity)
+    gauge_value = min(max(viral_activity, 0), 10)
+    predicted_deaths = predict_deaths_over_days(viral_activity, model)
+    
+    population = state_population_df.loc[state_population_df['state'] == state, 'pop_2014'].values[0] if state else 0
+    result_text = f"State: {state} | Model: {model} | Population: {population:,} | Viral Activity: {viral_activity} | Risk Level: {risk_level}"
+    deaths_text = f"Predicted Deaths (Day 1): {int(predicted_deaths[0])}"
+    
+    fig = {
+        'data': [{
+            'x': ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5'],
+            'y': [int(d) for d in predicted_deaths],
+            'type': 'bar',
+            'marker': {'color': 'orange'}
+        }],
+        'layout': {
+            'title': {'text': 'Predicted Deaths Over 5 Days', 'font': {'color': 'white'}},
+            'xaxis': {'title': 'Days', 'color': 'white', 'tickfont': {'color': 'white'}},
+            'yaxis': {'title': 'Deaths', 'color': 'white', 'tickfont': {'color': 'white'}},
+            'plot_bgcolor': '#1f2c56',
+            'paper_bgcolor': '#1f2c56',
+            'font': {'color': 'white'},
+            'margin': {'l': 40, 'r': 40, 't': 40, 'b': 40}
+        }
+    }
+    
+    return result_text, gauge_value, deaths_text, fig, f"Risk: {risk_level}"
 
-# Callback for Fun Facts Carousel
+# Callback for Fun Facts Carousel (unchanged, omitted for brevity)
 @app.callback(
     Output('fun-fact-display', 'children'),
     [Input('carousel-interval', 'n_intervals'),
