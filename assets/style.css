@@ -1,0 +1,210 @@
+
+
+body {
+  /* background-color: #fff; */
+  margin: 0px;
+  padding: 0px;
+}
+
+.card_container {
+  border-radius: 5px;
+  background-color: #1f2c56;
+  margin: 25px;
+  padding: 15px;
+  position: relative;
+  box-shadow: 2px 2px 2px #1f2c56;
+}
+
+.create_container {
+  border-radius: 5px;
+  background-color: #1f2c56;
+  margin: 18px;
+  padding: 15px;
+  position: relative;
+  box-shadow: 2px 2px 2px #1f2c56;
+}
+
+.create_container1 {
+  border-radius: 5px;
+  background-color: #1f2c56;
+  margin: 10px;
+  padding: 15px;
+  position: relative;
+  box-shadow: 2px 2px 2px #1f2c56;
+}
+
+.dcc_compon {
+  margin: 0;
+  padding: 5px;
+  width: calc(100%-40px);
+}
+
+.fix_label {
+font-size: 20px;
+  margin: 0;
+  padding: 10px;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
+  width: calc(100%-40px);
+}
+
+.flex-display {
+  display: flex;
+}
+
+.container-display {
+  display: flex;
+}
+
+#header {
+  align-items: center;
+}
+
+#refresh-data {
+  text-align: center;
+  height: 100%;
+  padding: 0 20px;
+  text-transform: none;
+  font-size: 20px;
+  float: right;
+  margin-right: 10px;
+  margin-top: 30px;
+}
+
+#title {
+  text-align: center;
+}
+
+#title1 {
+  text-align: center;
+}
+
+#mainContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.Select-control, .Select-menu-outer, .Select-multi-value-wrapper, .select-up, .is-open .Select-control {
+  background-color: #1f2c56;
+  color: white;
+
+}
+
+.Select-control{
+  border: 0.5px solid green;
+}
+
+.has-value.Select--single>.Select-control .Select-value .Select-value-label, .has-value.is-pseudo-focused.Select--single>.Select-control .Select-value .Select-value-label {
+  color: white;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px !important;
+  display: block !important;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: #1f2c56 !important;
+  border-radius: 10px !important;
+  display: block !important;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #192444;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: white !important;
+}
+
+.bichar-dashboard {
+  background-color: #192444;
+  padding: 5%;
+  display: flex;
+  flex: 1;
+  width: 100%;
+  margin: 0px;
+  padding: 0px;
+}
+
+
+.custom-gauge-label {
+  color: white; /* Set label color to white */
+  margin-bottom: -10px; /* Decrease bottom margin to bring label closer to the gauge */
+}
+
+/* Override the default styles of the tabs */
+#tabs {
+  background-color: #1f2c56; /* Your dashboard background color */
+  border: none;
+  padding: 4px;
+  border-radius: 8px; /* Rounded corners for the container */
+}
+
+/* Style for all tabs */
+#tabs .tab {
+  background-color: #2e3950; /* A slightly lighter shade for non-active tabs */
+  color: #7f8c8d; /* A lighter color for text to ensure visibility */
+  border: none;
+  border-radius: 8px; /* Rounded corners for each tab */
+  margin: 0 4px; /* Spacing between tabs */
+}
+
+/* Style for the active tab */
+#tabs .tab--selected {
+  background-color: #4a57a8; /* A complementary and more vibrant shade for active tab */
+  color: white; /* Active tab text color */
+  border: none;
+  border-radius: 8px; /* Keep the rounded corners consistent */
+  font-weight: bold; /* Optional: Make the active tab text bolder */
+}
+
+
+
+
+/* Style for labels in the tab */
+.label {
+  color: white;
+  font-family: "sans-serif"; /* Match the font from your dashboard */
+}
+
+/* Styling for the sliders */
+.rc-slider-track {
+  background-color: #f39c12; /* Highlight color for the slider track */
+}
+
+.rc-slider-handle {
+  border-color: #f39c12; /* Highlight color for the slider handle */
+}
+
+/* Style for the tooltips */
+.rc-tooltip-inner {
+  background-color: #f39c12; /* Highlight color for the tooltip background */
+}
+
+/* Style for the gauges */
+.daq-gauge {
+  color: white;
+}
+
+
+.gauge-container {
+  display: inline-block; /* Align gauges horizontally */
+  text-align: center; /* Center-align the gauge and its value */
+}
+
+.gauge-value-display {
+  color: white; /* Set the text color */
+  font-size: 16px; /* Adjust the size as needed */
+  font-weight: bold; /* Make the value bold */
+  margin-top: -10px; /* Space above the value */
+}
+
+.custom-slider {
+  width: 90%;
+  margin-bottom: 10
+}
