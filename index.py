@@ -62,20 +62,25 @@ def get_risk_level(value):
 
 # Prediction Functions
 def predict_rf_daily_deaths(viral_activity_level, days=5):
+    if viral_activity_level == 0:
+        return [0] * days  # Return zero deaths if viral activity is zero
     rf_input = np.array([[viral_activity_level, last_day_number + i + 1] for i in range(days)])
     rf_preds = rf_model.predict(rf_input)
     return rf_preds.tolist()  # Return as list for Dash compatibility
 
 def predict_arima_daily_deaths(viral_activity_level, days=5):
+    if viral_activity_level == 0:
+        return [0] * days  # Return zero deaths if viral activity is zero
     exog_future = np.array([[viral_activity_level]] * days)
     arima_preds = arima_model.forecast(steps=days, exog=exog_future)
     return [abs(pred) for pred in arima_preds.tolist()]  # Ensure positive values
 
 def predict_sarima_daily_deaths(viral_activity_level, days=5):
+    if viral_activity_level == 0:
+        return [0] * days  # Return zero deaths if viral activity is zero
     exog_future = np.array([[viral_activity_level]] * days)
     sarima_preds = sarima_model.forecast(steps=days, exog=exog_future)
     return [abs(pred) for pred in sarima_preds.tolist()]  # Ensure positive values
-
 
 def predict_deaths_over_days(viral_activity, model_type):
     if model_type == 'Random Forest':
@@ -380,7 +385,7 @@ def update_household_output(number, model):
 def update_state_population(selected_state):
     if selected_state:
         population = state_population_df.loc[state_population_df['state'] == selected_state, 'pop_2014'].values
-        return population[0] / 1_000_000 if len(population) > 0 else 0  # Scale to millions as default
+        return population[0]
     return 0
 
 # Callback for State tab - Update result and chart
