@@ -95,7 +95,7 @@ def predict_deaths_over_days(viral_activity, model_type):
 fun_facts = [
     {
         "question": "Definition of Viral Activity",
-        "answer": "The Wastewater Viral Activity Level is a calculated measure that allows us to aggregate wastewater sample data to get state/territorial, regional, and national levels and see trends over time. \n The value associated with the Wastewater Viral Activity Level is the number of standard deviations above the baseline, transformed to the linear scale. The formula is \n Wastewater Viral Activity Level = e ^ # of standard deviations relative to baseline."
+        "answer": "The Wastewater Viral Activity Level is a calculated measure that allows us to aggregate wastewater sample data to get state/territorial, regional, and national levels and see trends over time.\nThe value associated with the Wastewater Viral Activity Level is the number of standard deviations above the baseline, transformed to the linear scale. The formula is\nWastewater Viral Activity Level = e ^ # of standard deviations relative to baseline."
     },
     {
         "question": "What is wastewater surveillance?",
@@ -503,8 +503,17 @@ def update_fun_fact(n_intervals, prev_clicks, next_clicks, current_content):
     answer_lines = fact["answer"].split('\n')
     answer_content = []
     for i, line in enumerate(answer_lines):
-        answer_content.append(line.strip())  # Remove extra whitespace
-        if i < len(answer_lines) - 1:  # Add <br> except after the last line
+        line = line.strip()
+        if "Wastewater Viral Activity Level = e ^" in line:
+            # Split the formula part to handle the exponent
+            formula_parts = line.split(" = ")
+            formula_right = formula_parts[1].split(" ^ ")
+            answer_content.append(formula_parts[0] + " = ")  # "Wastewater Viral Activity Level = "
+            answer_content.append("e")  # Base 'e'
+            answer_content.append(html.Sup(formula_right[1], style={'fontSize': 14}))  # Superscript part
+        else:
+            answer_content.append(line)
+        if i < len(answer_lines) - 1:
             answer_content.append(html.Br())
 
     return html.Div([
@@ -512,6 +521,7 @@ def update_fun_fact(n_intervals, prev_clicks, next_clicks, current_content):
         html.P(answer_content, style={'fontSize': 14})
     ])
 
+    
 # Run the app
 if __name__ == '__main__':
     # app.run_server(debug=True)
