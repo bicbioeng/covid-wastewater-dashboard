@@ -94,6 +94,10 @@ def predict_deaths_over_days(viral_activity, model_type):
 # Sample fun facts
 fun_facts = [
     {
+        "question": "Definition of Viral Activity",
+        "answer": "The Wastewater Viral Activity Level is a calculated measure that allows us to aggregate wastewater sample data to get state/territorial, regional, and national levels and see trends over time. \n The value associated with the Wastewater Viral Activity Level is the number of standard deviations above the baseline, transformed to the linear scale. The formula is Wastewater Viral Activity Level = e ^ # of standard deviations relative to baseline."
+    },
+    {
         "question": "What is wastewater surveillance?",
         "answer": "Wastewater surveillance is an innovative public health tool that involves analyzing sewage to monitor the presence of viruses, bacteria, and other pathogens, such as the virus that causes COVID-19 (SARS-CoV-2). By collecting samples from wastewater treatment plants, scientists can detect traces of these pathogens shed by people through their waste, providing valuable insights into community health trends. This method serves as a broad, population-level screening system that complements traditional medical surveillance."
     },
@@ -132,6 +136,10 @@ fun_facts = [
     {
         "question": "Wastewater monitoring is complementary to other public health surveillance data.",
         "answer": "Wastewater data shines brightest when paired with other surveillance methods, such as clinical case reports or testing data. Together, these sources create a more complete and accurate picture of disease spread within a community. While wastewater monitoring provides a broad, population-level view, other data can offer specifics about individual cases, helping public health officials make informed decisions about interventions and resource distribution."
+    },
+    {
+        "question": "Wastewater Viral Activity Categories",
+        "answer": "Up to 1.5 – Very Low \n Greater than 1.5 and up to 3 – Low \n Greater than 3 and up to 4.5 – Moderate \n Greater than 4.5 and up to 8 – High \n Greater than 8 – Very High"
     }
 ]
 
@@ -257,6 +265,14 @@ app.layout = html.Div([
         ], className="create_container seven columns"),
 
         html.Div([
+            html.Div([
+                html.H4("Wastewater Viral Activity Level", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
+                html.P("Up to 1.5 – Very Low", style={'color': 'white', 'textAlign': 'center'}),
+                html.P("Greater than 1.5 and up to 3 – Low", style={'color': 'white', 'textAlign': 'center'}),
+                html.P("Greater than 3 and up to 4.5 – Moderate", style={'color': 'white', 'textAlign': 'center'}),
+                html.P("Greater than 4.5 and up to 8 – High", style={'color': 'white', 'textAlign': 'center'}),
+                html.P("Greater than 8 – Very High", style={'color': 'white', 'textAlign': 'center'}),
+            ], style={'padding': '20px', 'marginBottom': '30px', 'backgroundColor': '#2a3b7a'}),
             # Fun Facts Carousel section
             html.Div([
                 html.H4("Fun Facts", style={'color': 'white', 'textAlign': 'center', 'marginBottom': '20px'}),
@@ -295,6 +311,30 @@ app.layout = html.Div([
                         [
                             html.Li(
                                 html.A(
+                                    "South Dakota Trend, COVID-19",
+                                    href="https://www.cdc.gov/nwss/rv/COVID19-statetrend.html?stateval=South%20Dakota",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                            html.Li(
+                                html.A(
+                                    "State Trends, COVID-19",
+                                    href="https://www.cdc.gov/nwss/rv/COVID19-statetrend.html?stateval=South%20Dakota",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                            html.Li(
+                                html.A(
+                                    "COVID-19 Update for the United States",
+                                    href="https://covid.cdc.gov/covid-data-tracker/#datatracker-home",
+                                    target="_blank",
+                                    style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
+                                )
+                            ),
+                            html.Li(
+                                html.A(
                                     "CDC NWSS About",
                                     href="https://www.cdc.gov/nwss/about.html?CDC_AA_refVal=https%3A%2F%2Fwww.cdc.gov%2Fnwss%2Fprogress.html",
                                     target="_blank",
@@ -316,7 +356,7 @@ app.layout = html.Div([
                                     target="_blank",
                                     style={"text-decoration": "none", "color": "#007bff", "font-weight": "bold"},
                                 )
-                            ),
+                            )
                         ],
                         style={"list-style-type": "none", "padding": "0"},
                     ),
@@ -458,9 +498,18 @@ def update_fun_fact(n_intervals, prev_clicks, next_clicks, current_content):
         current_index = (n_intervals % total_facts)
 
     fact = fun_facts[current_index]
+    
+    # Split the answer by newline and intersperse with html.Br()
+    answer_lines = fact["answer"].split('\n')
+    answer_content = []
+    for i, line in enumerate(answer_lines):
+        answer_content.append(line.strip())  # Remove extra whitespace
+        if i < len(answer_lines) - 1:  # Add <br> except after the last line
+            answer_content.append(html.Br())
+
     return html.Div([
         html.P(fact["question"], style={'fontSize': 16, 'fontWeight': 'bold', 'marginBottom': '5px'}),
-        html.P(fact["answer"], style={'fontSize': 14})
+        html.P(answer_content, style={'fontSize': 14})
     ])
 
 # Run the app
