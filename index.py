@@ -95,7 +95,7 @@ def predict_deaths_over_days(viral_activity, model_type):
 fun_facts = [
     {
         "question": "Definition of Viral Activity",
-        "answer": "The Wastewater Viral Activity Level is a calculated measure that allows us to aggregate wastewater sample data to get state/territorial, regional, and national levels and see trends over time. \n The value associated with the Wastewater Viral Activity Level is the number of standard deviations above the baseline, transformed to the linear scale. The formula is Wastewater Viral Activity Level = e ^ # of standard deviations relative to baseline."
+        "answer": "The Wastewater Viral Activity Level is a calculated measure that allows us to aggregate wastewater sample data to get state/territorial, regional, and national levels and see trends over time. \n The value associated with the Wastewater Viral Activity Level is the number of standard deviations above the baseline, transformed to the linear scale. The formula is \n Wastewater Viral Activity Level = e ^ # of standard deviations relative to baseline."
     },
     {
         "question": "What is wastewater surveillance?",
