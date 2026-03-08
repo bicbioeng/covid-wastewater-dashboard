@@ -525,4 +525,4 @@ def update_fun_fact(n_intervals, prev_clicks, next_clicks, current_content):
 # Run the app
 if __name__ == '__main__':
     # app.run_server(debug=True)
-    app.run_server(debug=False, use_reloader=False, host="0.0.0.0")
+    app.run(debug=False, use_reloader=False, host="0.0.0.0")
